@@ -1,3 +1,6 @@
+// Gabriel Zagury de Magalhães - 2210912
+// Elisa Vignoud - 2320149
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
