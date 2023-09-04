@@ -12,7 +12,7 @@ int main(void)
     iniloop:
     while (1)
     {
-        printf("Gabishell> ");
+        printf("shell> ");
         char *linha = NULL;
         size_t len = 0;
         ssize_t read = getline(&linha, &len, stdin); // lê a linha digitada pelo usuário

@@ -21,18 +21,20 @@ int main(void)
 
     if (pid == 0) // processo filho
     {
-        for (int i = 0; i < 10000; i++, n += 10)
+        for (int i = 0; i < 10000; i++)
         {
-            printf("processo filho, pid=%d, n=%d\n", getpid(), n);
+            n += 10;
         }
+        printf("processo filho, pid=%d, n=%d\n", getpid(), n);
         exit(0); // termina o processo filho
     }
     else
     {
-        for (int i = 0; i < 10000; i++, n++)
+        for (int i = 0; i < 10000; i++)
         {
-            printf("processo pai, pid=%d, n=%d\n", getpid(), n);
+            n++;
         }
+        printf("processo pai, pid=%d, n=%d\n", getpid(), n);
         wait(NULL); // espera o filho terminar
     }
     return(0);
