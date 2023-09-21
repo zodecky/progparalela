@@ -8,6 +8,32 @@
 
 #define SIZEVEC 100000
 
+clock_t min(clock_t *listaclock)
+{
+    clock_t min = listaclock[0];
+    for (int i = 1; i < 10; i++)
+    {
+        if (listaclock[i] < min)
+        {
+            min = listaclock[i];
+        }
+    }
+    return min;
+}
+
+clock_t max(clock_t *listaclock)
+{
+    clock_t max = listaclock[0];
+    for (int i = 1; i < 10; i++)
+    {
+        if (listaclock[i] > max)
+        {
+            max = listaclock[i];
+        }
+    }
+    return max;
+}
+
 int main(void)
 {
     clock_t start, end;
@@ -26,24 +52,34 @@ int main(void)
         vetor5[i] = 5;
     }
 
-    start = clock();
+    int segmento2;
+    int segmento3;
+
+    segmento2 = shmget(IPC_PRIVATE, 10 * sizeof(clock_t), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    segmento3 = shmget(IPC_PRIVATE, 10 * sizeof(clock_t), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    clock_t *listaclockstart = (clock_t *)shmat(segmento2, 0, 0);
+    clock_t *listaclockend = (clock_t *)shmat(segmento3, 0, 0);
 
     for (int i = 0; i < 10; i++)
     {
         pid_t pid = fork();
+        listaclockstart[i] = clock();
         if (pid == 0)
         {
             int start = i * SIZEVEC / 10;
-            int end = start + (SIZEVEC / 10 - 1) ;
+            int end = start + (SIZEVEC / 10 - 1);
             for (int j = start; j <= end; j++)
             {
                 vetor5[j] = vetor5[j] * 2;
             }
+            listaclockend[i] = clock();
             exit(0);
         }
     }
 
-    end = clock();
+    start = min(listaclockstart);
+    end = max(listaclockend);
+
     cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     printf("Tempo de execução paralelo: %f\n", cpu_time_used);

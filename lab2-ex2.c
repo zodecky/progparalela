@@ -26,6 +26,7 @@ int main(void)
 
     if (pid == 0)
     {
+        // sleep(1);
         for (int i = 0; i < SIZEVEC; i++)
         {
             vetor5[i] = (vetor5[i] * 2) + 2;
@@ -43,6 +44,7 @@ int main(void)
         exit(0);
     }
 
+    wait(NULL);
     wait(NULL);
 
     // print vec
