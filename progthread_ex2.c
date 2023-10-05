@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define SIZEVEC 10000000
+#define SIZEVEC 10000
 #define NUMTHREADS 2
 
 int vec[SIZEVEC];

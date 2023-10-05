@@ -3,7 +3,7 @@
 #include <pthread.h>
 
 #define SIZEVEC 100000000
-#define NUMTHREADS 2
+#define NUMTHREADS 10
 
 int vector[SIZEVEC];
 clock_t listastart[NUMTHREADS];
@@ -85,8 +85,12 @@ int main(void)
     start = min(listastart);
     end = max(listaend);
 
+    printf("Start: %ld\n", start);
+    printf("End: %ld\n", end);
+
     
     // print listastart e listaend
+    printf("Lista de start e end:\n");
     for (int i = 0; i < NUMTHREADS; i++)
     {
         printf("%ld - %ld\n", listastart[i], listaend[i]);
