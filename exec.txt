@@ -1,0 +1,3 @@
+Run prog1 I=3 D=5
+Run prog2
+Run prog3 I=3 D=5
