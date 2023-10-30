@@ -43,7 +43,7 @@ int numlinhasarq(FILE *fp)
 
 
 
-Fila *novaentrada(const char path[])
+void novaentrada(const char path[], Fila *processos)
 {
     FILE *fp = fopen(path, "r");
     int i = 0;
@@ -61,14 +61,6 @@ Fila *novaentrada(const char path[])
 
     // descobre o numero de linhas do arquivo
     int numlinhas = numlinhasarq(fp);
-
-    // aloca memoria para o vetor de processos
-    Fila *processos = (Fila *)malloc(numlinhas * sizeof(Fila));
-    if (processos == NULL)
-    {
-        printf("Erro ao alocar memoria.\n");
-        exit(1);
-    }
 
     int conta_linha = 1;
     char linha[MAX];
@@ -227,9 +219,14 @@ Fila *novaentrada(const char path[])
         processos[i].duracao = numargs == 3 ? argd : -1;
 
         i++; // proximo processo
+
+        printf("Processo %s adicionado.\n", nomeprocesso);
+
+        sleep(1); // delay de 1 segundo para enviar 1 por 1
     }
 
+    printf("Todos os processos foram adicionados.\n");
     fclose(fp);
 
-    return processos;
+    return;
 }

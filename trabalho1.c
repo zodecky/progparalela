@@ -29,12 +29,13 @@ interpretador lê de um arquivo de texto exec.txt ao inicio do programa
 #include <stdbool.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/shm.h>
 
 #include "estruturas.h"
 
 void escalona(Fila *processos, int numlinhas);
 int numlinhasarq(FILE *fp);
-Fila *novaentrada(const char path[]);
+void novaentrada(const char path[], Fila *processos);
 
 int tempo = 0;
 CircularLinkedList *lista_processos = NULL;
@@ -81,18 +82,32 @@ int main(void)
     printf("Numero de linhas: %d\n", numlinhas);
     fclose(fp);
 
-    Fila *processos = novaentrada("exec.txt");
+    int shmid = shmget(IPC_PRIVATE, sizeof(Fila) * numlinhas, IPC_CREAT | 0666);
+    Fila *processos = (Fila *)shmat(shmid, NULL, 0);
 
-    for (int i = 0; i < numlinhas; i++)
+    // cria 2 processos
+    int pid = fork();
+
+    if (pid == 0)
     {
-        printf("Nome: %s\n", processos[i].nome);
-        printf("PID: %d\n", processos[i].pid);
-        printf("Tipo: %s\n", processos[i].tipo == REAL_TIME ? "tempo_real" : "round_robin");
-        printf("Inicio: %d\n", processos[i].inicio);
-        printf("Duracao: %d\n", processos[i].duracao);
-        printf("\n");
+        novaentrada("exec.txt", processos);
+        exit(0);
+    }
+    else
+    {
+        escalona(processos, numlinhas);
     }
 
-    escalona(processos, numlinhas);
+
+    // for (int i = 0; i < numlinhas; i++)
+    // {
+    //     printf("Nome: %s\n", processos[i].nome);
+    //     printf("PID: %d\n", processos[i].pid);
+    //     printf("Tipo: %s\n", processos[i].tipo == REAL_TIME ? "tempo_real" : "round_robin");
+    //     printf("Inicio: %d\n", processos[i].inicio);
+    //     printf("Duracao: %d\n", processos[i].duracao);
+    //     printf("\n");
+    // }
+
     return 0;
 }

@@ -14,7 +14,7 @@ extern CircularLinkedList *lista_processos;
 
 void escalona(Fila *processos, int numlinhas);
 int numlinhasarq(FILE *fp);
-Fila *novaentrada(const char path[]);
+void novaentrada(const char path[], Fila *processos);
 void adicionar_processo(Fila *processo);
 
 int call(pid_t pid, int sig)
@@ -29,60 +29,77 @@ int call(pid_t pid, int sig)
 
 void escalona(Fila *processos, int numlinhas)
 {
-    for (int i = 0; i < numlinhas; i++)
-    {
-        // cria o processo
-        pid_t pid = fork();
-
-        if (pid == 0)
-        {
-            char nomeprogexec[30];
-            nomeprogexec[0] = '.';
-            nomeprogexec[1] = '/';
-            strcpy(nomeprogexec + 2, processos[i].nome);
-            // processo filho
-            // executa o programa
-            // formata a string
-
-            execvp(nomeprogexec, NULL);
-            printf("Erro ao executar o programa %s.\n", processos[i].nome);
-            exit(0); // so executa se o programa não existir
-        }
-        else
-        {
-            // processo pai
-            // salva o pid do processo
-            processos[i].pid = pid;
-            call(pid, SIGSTOP); // pausa o processo
-        }
-    }
 
     // escalona os processos
     pid_t processo_atual = -1;
     int qtd_round_robin = 0;
 
-    // cria a lista de processos round robin
-    for (int i = 0; i < numlinhas; i++)
-    {
-        if (processos[i].tipo == ROUND_ROBIN)
-        {
-            adicionar_processo(&processos[i]);
-        }
-    }
-    
-    for (int i = 0; i < numlinhas; i++)
-    {
-        if (processos[i].tipo == ROUND_ROBIN)
-        {
-            qtd_round_robin++;
-        }
-    }
-
     bool realtime_executando = false;
     bool processo_executando = false;
 
+    sleep(3);
+
     while (true)
     {
+
+        // algum processo precisa ser inicializado?
+
+        for (int i = 0; i < numlinhas; i++)
+        {
+            // cria o processo
+            pid_t pid = fork();
+
+            if (pid == 0)
+            {
+                if (processos[i].pid != 0) // ja foi ini
+                {
+                    exit(0);
+                }
+
+                char nomeprogexec[30];
+                nomeprogexec[0] = '.';
+                nomeprogexec[1] = '/';
+                strcpy(nomeprogexec + 2, processos[i].nome);
+                // processo filho
+                // executa o programa
+                // formata a string
+
+                execvp(nomeprogexec, NULL);
+                printf("Erro ao executar o programa %s.\n", processos[i].nome);
+                exit(0); // so executa se o programa não existir
+            }
+            else
+            {
+
+                if (processos[i].pid != 0) // ja foi ini
+                {
+                    continue;
+                }
+                printf("Processo %s criado com pid %d\n", processos[i].nome, pid);
+
+
+                // processo pai
+                // salva o pid do processo
+                processos[i].pid = pid;
+                call(pid, SIGSTOP); // pausa o processo
+
+                // se o processo for round robin, adiciona ele na lista de round robin
+                if (processos[i].tipo == ROUND_ROBIN)
+                {
+                    adicionar_processo(&processos[i]);
+                    qtd_round_robin++;
+                }
+
+                // print lista rr
+                CircularLinkedList *temp = lista_processos;
+                printf("Lista de processos round robin:\n");
+                for (int i = 0; i < qtd_round_robin; i++)
+                {
+                    printf("%s, pid = %d\n", temp->processo->nome, temp->processo->pid);
+                    temp = temp->next;
+                }
+            }
+        }
 
         if (tempo == 0)
         {
@@ -92,7 +109,6 @@ void escalona(Fila *processos, int numlinhas)
                 call(processos[i].pid, SIGSTOP);
             }
         }
-
 
         // algum tempo de processo real time terminou?
         for (int i = 0; i < numlinhas; i++)
@@ -147,23 +163,35 @@ void escalona(Fila *processos, int numlinhas)
 
                     // move o ponteiro para o proximo processo
                     lista_processos = lista_processos->next;
+
+                    printf("Processo %s incial.\n", lista_processos->processo->nome);
+                }
+                else
+                {
+                    printf("estranho.\n");
+                
                 }
             }
             else
             {
                 // se algum processo esta executando, pausa ele e executa o proximo
                 call(processo_atual, SIGSTOP);
-                processo_atual = lista_processos->processo->pid;
-                call(lista_processos->processo->pid, SIGCONT);
 
                 // move o ponteiro para o proximo processo
                 lista_processos = lista_processos->next;
+
+                // executa o proximo processo
+                processo_atual = lista_processos->processo->pid;
+
+                printf("Processo %s executando.\n", lista_processos->processo->nome);
+
+                call(lista_processos->processo->pid, SIGCONT);
             }
 
             processo_executando = true;
             realtime_executando = false;
         }
-        
+
         if (!processo_executando)
         {
             printf("Nenhum processo executando.\n");
@@ -171,11 +199,9 @@ void escalona(Fila *processos, int numlinhas)
             realtime_executando = false;
         }
 
-
         sleep(1); // tempo de atualização
         printf(" - %ds\n", tempo);
         tempo += 1;
         tempo %= 60;
     }
-
 }

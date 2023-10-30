@@ -1,3 +1,2 @@
-Run prog1 I=6 D=4
-Run prog2 I=14 D=4
-Run prog3
+Run prog1
+Run prog2
