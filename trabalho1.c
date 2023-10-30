@@ -26,297 +26,55 @@ interpretador lê de um arquivo de texto exec.txt ao inicio do programa
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
 #include <signal.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <errno.h>
-#include <ctype.h>
 
-#define MAX 100 // tamanho maximo de uma linha
+#include "estruturas.h"
 
-typedef enum tipo_processo
+void escalona(Fila *processos, int numlinhas);
+int numlinhasarq(FILE *fp);
+Fila *novaentrada(const char path[]);
+
+int tempo = 0;
+CircularLinkedList *lista_processos = NULL;
+
+void adicionar_processo(Fila *processo)
 {
-    REAL_TIME,
-    ROUND_ROBIN
-} TIPO;
+    CircularLinkedList *novo = (CircularLinkedList *)malloc(sizeof(CircularLinkedList));
+    novo->processo = processo;
+    novo->next = NULL;
 
-// estrutura para a fila de processos
-typedef struct fila_t
-{
-    pid_t pid;
-    TIPO tipo;
-    char nome[30];
-    int inicio;
-    int duracao;
-} Fila;
-
-int numlinhasarq(FILE *fp)
-{
-    int numlinhas = 0;
-    char c;
-    bool temtexto = 0;
-
-    for (c = (char)getc(fp); c != EOF; c = (char)getc(fp))
+    if (lista_processos == NULL)
     {
-        if (c == '\n')
-        {
-            if (temtexto)
-            {
-                numlinhas++;
-                temtexto = 0;
-            }
-        }
-        else
-        {
-            temtexto = 1;
-        }
+        lista_processos = novo;
+        lista_processos->next = lista_processos;
     }
-
-    // se a ultima linha não termina com \n
-    if (temtexto)
+    else
     {
-        numlinhas++;
+        CircularLinkedList *ultimo = lista_processos;
+        while (ultimo->next != lista_processos)
+        {
+            ultimo = ultimo->next;
+        }
+        ultimo->next = novo;
+        novo->next = lista_processos;
     }
-
-    rewind(fp);
-
-    return numlinhas;
 }
 
-Fila *novaentrada(const char path[])
+
+void setflag(int sig)
 {
-    FILE *fp = fopen(path, "r");
-    int i = 0;
-
-    char nomeprocesso[MAX];
-
-    int argi = 0;
-    int argd = 0;
-
-    if (fp == NULL)
-    {
-        printf("Erro ao abrir o arquivo.\n");
-        exit(1);
-    }
-
-    // descobre o numero de linhas do arquivo
-    int numlinhas = numlinhasarq(fp);
-
-    // aloca memoria para o vetor de processos
-    Fila *processos = (Fila *)malloc(numlinhas * sizeof(Fila));
-    if (processos == NULL)
-    {
-        printf("Erro ao alocar memoria.\n");
-        exit(1);
-    }
-
-    int conta_linha = 1;
-    char linha[MAX];
-
-    while (fgets(linha, MAX, fp) != NULL)
-    {
-        // formatos aceitos:
-        // Run prog1 I=10 D=10
-        // Run prog1
-
-        // verifica se a linha é valida
-        if (strncmp(linha, "Run", 3) != 0)
-        {
-            printf("Erro na linha %d: comando invalido.\n", conta_linha);
-            exit(1);
-        }
-
-        // verifica se a linha tem 2 ou 4 argumentos
-        int numargs = 0;
-        for (int k = 0; k < MAX; k++)
-        {
-            if (linha[k] == ' ')
-            {
-                numargs++;
-            }
-        }
-
-        if (numargs != 1 && numargs != 3)
-        {
-            printf("Erro na linha %d: numero de argumentos invalido.\n", conta_linha);
-            exit(1);
-        }
-
-        // verifica se o nome do programa é valido
-        char *nomeprog = strtok(linha, " ");
-        nomeprog = strtok(NULL, " ");
-
-        strcpy(nomeprocesso, nomeprog);
-
-        if (nomeprog == NULL)
-        {
-            printf("Erro na linha %d: nome do programa invalido.\n", conta_linha);
-            exit(1);
-        }
-
-        // verifica se o nome do programa tem no maximo 10 caracteres
-        if (strlen(nomeprog) > 10)
-        {
-            printf("Erro na linha %d: nome do programa invalido.\n", conta_linha);
-            exit(1);
-        }
-
-        // verifica se o nome do programa é valido
-        if (strncmp(nomeprog, "Run", 3) == 0)
-        {
-            printf("Erro na linha %d: nome do programa nao pode ser Run.\n", conta_linha);
-            exit(1);
-        }
-        // verifica se inclui os argumentos I e D
-        if (numargs == 3)
-        {
-            char *inicio = strtok(NULL, " ");
-            char *duracao = strtok(NULL, " ");
-
-            if (inicio == NULL || duracao == NULL)
-            {
-                printf("Erro na linha %d: argumentos invalidos.\n", conta_linha);
-                exit(1);
-            }
-
-            // verifica se o argumento I é valido
-            if (strncmp(inicio, "I=", 2) != 0)
-            {
-                printf("Erro na linha %d: argumento I nao existe.\n", conta_linha);
-                exit(1);
-            }
-
-            // verifica se o argumento D é valido
-            if (strncmp(duracao, "D=", 2) != 0)
-            {
-                printf("Erro na linha %d: argumento D nao existe.\n", conta_linha);
-                exit(1);
-            }
-
-            // verifica se o argumento I é um numero
-            for (int i = 2; i < strlen(inicio); i++)
-            {
-                if (duracao[i] == '\n')
-                {
-                    continue; // ignorar newline (anti-bug)
-                }
-                if (!isdigit(inicio[i]))
-                {
-                    printf("Erro na linha %d: argumento I precisa ser um numero.\n", conta_linha);
-                    exit(1);
-                }
-            }
-            argi = atoi(inicio + 2);
-
-            // verifica se o argumento D é um numero
-            for (int i = 2; i < strlen(duracao); i++)
-            {
-                if (duracao[i] == '\n')
-                {
-                    continue; // ignorar newline (anti-bug)
-                }
-
-                if (!isdigit(duracao[i]))
-                {
-                    printf("Erro na linha %d: argumento D precisa ser um numero.\n", conta_linha);
-                    exit(1);
-                }
-            }
-
-            argd = atoi(duracao + 2);
-
-            // verifica se o argumento I é valido
-            int inicio_int = atoi(inicio + 2);
-            if (inicio_int <= 0 || inicio_int >= 60)
-            {
-                printf("Erro na linha %d: argumento I nao pode ser negativo nem maior que 60.\n", conta_linha);
-                exit(1);
-            }
-
-            // verifica se o argumento D é valido
-            int duracao_int = atoi(duracao + 2);
-            if (duracao_int <= 0 || duracao_int >= 60)
-            {
-                printf("Erro na linha %d: argumento D nao pode ser negativo nem maior que 60.\n", conta_linha);
-                exit(1);
-            }
-
-            // verifica se a soma de I e D é maior que 60
-
-            if (inicio_int + duracao_int > 60)
-            {
-                printf("Erro na linha %d: i + d não pode ser maior que 60.\n", conta_linha);
-                exit(1);
-            }
-        }
-        conta_linha++;
-
-        // se passou nos testes acima, a linha é valida. Adiciona o processo na fila
-
-        // remove \n do final do nome do processo, se existir
-        if (nomeprocesso[strlen(nomeprocesso) - 1] == '\n')
-        {
-            nomeprocesso[strlen(nomeprocesso) - 1] = '\0';
-        }
-
-        strcpy(processos[i].nome, nomeprocesso);
-        processos[i].pid = 0; // ainda não foi criado
-        processos[i].tipo = numargs == 3 ? REAL_TIME : ROUND_ROBIN;
-
-        processos[i].inicio = numargs == 3 ? argi : -1;
-        processos[i].duracao = numargs == 3 ? argd : -1;
-
-        i++; // proximo processo
-    }
-
-    fclose(fp);
-
-    return processos;
+    printf("+10s");
+    tempo += 10;
+    return;
 }
 
-void escalona(Fila *processos, int numlinhas)
-{
-    for (int i = 0; i < numlinhas; i++)
-    {
-        // cria o processo
-        pid_t pid = fork();
-
-        if (pid == 0)
-        {
-            // processo filho
-            // executa o programa
-            execvp(processos[i].nome, NULL);
-            printf("Erro ao executar o programa %s.\n", processos[i].nome);
-            exit(0); // so executa se o programa não existir
-        }
-        else
-        {
-            // processo pai
-            // salva o pid do processo
-            processos[i].pid = pid;
-            kill(pid, SIGSTOP); // pausa o processo
-        }
-    }
-
-    // escalona os processos
-    int tempo = 0;
-
-    while (true)
-    {
-        }
-}
 
 int main(void)
 {
+    signal(SIGINT, setflag);
+
     FILE *fp = fopen("exec.txt", "r");
     int numlinhas = numlinhasarq(fp);
 
