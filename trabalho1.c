@@ -30,6 +30,7 @@ interpretador lê de um arquivo de texto exec.txt ao inicio do programa
 #include <unistd.h>
 #include <signal.h>
 #include <sys/shm.h>
+#include <pthread.h>
 
 #include "estruturas.h"
 
@@ -38,35 +39,43 @@ int numlinhasarq(FILE *fp);
 void novaentrada(const char path[], Fila *processos);
 
 int tempo = 0;
-CircularLinkedList *lista_processos = NULL;
+#include <pthread.h>
 
-void adicionar_processo(Fila *processo)
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+CircularLinkedList *lista_processos = NULL;
+CircularLinkedList *primeiro = NULL;
+
+void adicionar_roundrobin(Fila *processo)
 {
+    pthread_mutex_lock(&mutex);
+
     CircularLinkedList *novo = (CircularLinkedList *)malloc(sizeof(CircularLinkedList));
     novo->processo = processo;
     novo->next = NULL;
+    novo->prev = NULL;
 
     if (lista_processos == NULL)
     {
         lista_processos = novo;
+        primeiro = novo;
         lista_processos->next = lista_processos;
+        lista_processos->prev = lista_processos;
     }
     else
     {
-        CircularLinkedList *ultimo = lista_processos;
-        while (ultimo->next != lista_processos)
-        {
-            ultimo = ultimo->next;
-        }
-        ultimo->next = novo;
+        lista_processos->prev->next = novo;
+        novo->prev = lista_processos->prev;
         novo->next = lista_processos;
+        lista_processos->prev = novo;
     }
+
+    pthread_mutex_unlock(&mutex);
 }
 
 
 void setflag(int sig)
 {
-    printf("+10s");
+    printf("\033[1;33m+10s\033[0m");
     tempo += 10;
     return;
 }
@@ -79,7 +88,6 @@ int main(void)
     FILE *fp = fopen("exec.txt", "r");
     int numlinhas = numlinhasarq(fp);
 
-    printf("Numero de linhas: %d\n", numlinhas);
     fclose(fp);
 
     int shmid = shmget(IPC_PRIVATE, sizeof(Fila) * numlinhas, IPC_CREAT | 0666);

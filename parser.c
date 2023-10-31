@@ -55,12 +55,14 @@ void novaentrada(const char path[], Fila *processos)
 
     if (fp == NULL)
     {
-        printf("Erro ao abrir o arquivo.\n");
+        printf("\033[1;31mErro ao abrir o arquivo.\n\033[0m");
         exit(1);
     }
 
     // descobre o numero de linhas do arquivo
     int numlinhas = numlinhasarq(fp);
+
+    printf("linhas: %d\n", numlinhas);
 
     int conta_linha = 1;
     char linha[MAX];
@@ -74,7 +76,7 @@ void novaentrada(const char path[], Fila *processos)
         // verifica se a linha é valida
         if (strncmp(linha, "Run", 3) != 0)
         {
-            printf("Erro na linha %d: comando invalido.\n", conta_linha);
+            printf("\033[1;31mErro na linha %d: comando invalido.\n\033[0m", conta_linha);
             exit(1);
         }
 
@@ -82,66 +84,71 @@ void novaentrada(const char path[], Fila *processos)
         int numargs = 0;
         for (int k = 0; k < MAX; k++)
         {
-            if (linha[k] == ' ')
+            if (linha[k] == ' ' || linha[k] == '\n')
             {
                 numargs++;
             }
         }
 
+        numargs -= 1;
+
         if (numargs != 1 && numargs != 3)
         {
-            printf("Erro na linha %d: numero de argumentos invalido.\n", conta_linha);
+            if (numlinhas == conta_linha)
+                printf("\033[1;31mErro na linha %d: numero de argumentos invalido. (%d) \033[0;31mVoce colocou um \\n? Se nao, coloque\n\033[0m", conta_linha, numargs);
+            else
+                printf("\033[1;31mErro na linha %d: numero de argumentos invalido. (%d)\n\033[0m", conta_linha, numargs);
             exit(1);
         }
 
         // verifica se o nome do programa é valido
-        char *nomeprog = strtok(linha, " ");
-        nomeprog = strtok(NULL, " ");
+        char *nomeprog = strtok(linha, " \n");
+        nomeprog = strtok(NULL, " \n");
 
         strcpy(nomeprocesso, nomeprog);
 
         if (nomeprog == NULL)
         {
-            printf("Erro na linha %d: nome do programa invalido.\n", conta_linha);
+            printf("\033[1;31mErro na linha %d: nome do programa invalido.\n\033[0m", conta_linha);
             exit(1);
         }
 
         // verifica se o nome do programa tem no maximo 10 caracteres
         if (strlen(nomeprog) > 10)
         {
-            printf("Erro na linha %d: nome do programa invalido.\n", conta_linha);
+            printf("\033[1;31mErro na linha %d: nome do programa invalido.\n\033[0m", conta_linha);
             exit(1);
         }
 
         // verifica se o nome do programa é valido
         if (strncmp(nomeprog, "Run", 3) == 0)
         {
-            printf("Erro na linha %d: nome do programa nao pode ser Run.\n", conta_linha);
+            printf("\033[1;31mErro na linha %d: nome do programa nao pode ser Run.\n\033[0m", conta_linha);
             exit(1);
         }
         // verifica se inclui os argumentos I e D
         if (numargs == 3)
         {
-            char *inicio = strtok(NULL, " ");
-            char *duracao = strtok(NULL, " ");
+            char *inicio = strtok(NULL, " \n");
+            char *duracao = strtok(NULL, " \n");
 
             if (inicio == NULL || duracao == NULL)
             {
-                printf("Erro na linha %d: argumentos invalidos.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: argumentos invalidos (%d).\n\033[0m", conta_linha, numargs);
                 exit(1);
             }
 
             // verifica se o argumento I é valido
             if (strncmp(inicio, "I=", 2) != 0)
             {
-                printf("Erro na linha %d: argumento I nao existe.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: argumento I nao existe.\n\033[0m", conta_linha);
                 exit(1);
             }
 
             // verifica se o argumento D é valido
             if (strncmp(duracao, "D=", 2) != 0)
             {
-                printf("Erro na linha %d: argumento D nao existe.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: argumento D nao existe.\n\033[0m", conta_linha);
                 exit(1);
             }
 
@@ -154,7 +161,7 @@ void novaentrada(const char path[], Fila *processos)
                 }
                 if (!isdigit(inicio[i]))
                 {
-                    printf("Erro na linha %d: argumento I precisa ser um numero.\n", conta_linha);
+                    printf("\033[1;31mErro na linha %d: argumento I precisa ser um numero.\n\033[0m", conta_linha);
                     exit(1);
                 }
             }
@@ -170,7 +177,7 @@ void novaentrada(const char path[], Fila *processos)
 
                 if (!isdigit(duracao[i]))
                 {
-                    printf("Erro na linha %d: argumento D precisa ser um numero.\n", conta_linha);
+                    printf("\033[1;31mErro na linha %d: argumento D precisa ser um numero.\n\033[0m", conta_linha);
                     exit(1);
                 }
             }
@@ -181,7 +188,7 @@ void novaentrada(const char path[], Fila *processos)
             int inicio_int = atoi(inicio + 2);
             if (inicio_int <= 0 || inicio_int >= 60)
             {
-                printf("Erro na linha %d: argumento I nao pode ser negativo nem maior que 60.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: argumento I nao pode ser negativo nem maior que 60.\n\033[0m", conta_linha);
                 exit(1);
             }
 
@@ -189,7 +196,7 @@ void novaentrada(const char path[], Fila *processos)
             int duracao_int = atoi(duracao + 2);
             if (duracao_int <= 0 || duracao_int >= 60)
             {
-                printf("Erro na linha %d: argumento D nao pode ser negativo nem maior que 60.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: argumento D nao pode ser negativo nem maior que 60.\n\033[0m", conta_linha);
                 exit(1);
             }
 
@@ -197,7 +204,7 @@ void novaentrada(const char path[], Fila *processos)
 
             if (inicio_int + duracao_int > 60)
             {
-                printf("Erro na linha %d: i + d não pode ser maior que 60.\n", conta_linha);
+                printf("\033[1;31mErro na linha %d: i + d não pode ser maior que 60.\n\033[0m", conta_linha);
                 exit(1);
             }
         }
@@ -218,14 +225,17 @@ void novaentrada(const char path[], Fila *processos)
         processos[i].inicio = numargs == 3 ? argi : -1;
         processos[i].duracao = numargs == 3 ? argd : -1;
 
+        processos[i].executando = false;
+        processos[i].criado = true;
+
         i++; // proximo processo
 
-        printf("Processo %s adicionado.\n", nomeprocesso);
+        printf("\033[1;34mProcesso %s adicionado.\n\033[0m", nomeprocesso);
 
         sleep(1); // delay de 1 segundo para enviar 1 por 1
     }
 
-    printf("Todos os processos foram adicionados.\n");
+    printf("\033[1;32mTodos os processos foram adicionados.\n\033[0m");
     fclose(fp);
 
     return;

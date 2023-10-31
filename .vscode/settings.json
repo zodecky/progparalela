@@ -62,6 +62,7 @@
     "pthread.h": "c",
     "stdlib.h": "c",
     "wait.h": "c",
-    "stdbool.h": "c"
+    "stdbool.h": "c",
+    "estruturas.h": "c"
   }
 }

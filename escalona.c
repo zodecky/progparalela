@@ -3,19 +3,19 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
 #include <signal.h>
 #include <ctype.h>
 
 #include "estruturas.h"
 
 extern int tempo;
+extern CircularLinkedList *primeiro;
 extern CircularLinkedList *lista_processos;
 
 void escalona(Fila *processos, int numlinhas);
 int numlinhasarq(FILE *fp);
 void novaentrada(const char path[], Fila *processos);
-void adicionar_processo(Fila *processo);
+void adicionar_roundrobin(Fila *processo);
 
 int call(pid_t pid, int sig)
 {
@@ -37,7 +37,7 @@ void escalona(Fila *processos, int numlinhas)
     bool realtime_executando = false;
     bool processo_executando = false;
 
-    sleep(3);
+    sleep(1);
 
     while (true)
     {
@@ -46,15 +46,24 @@ void escalona(Fila *processos, int numlinhas)
 
         for (int i = 0; i < numlinhas; i++)
         {
+
+            if (processos[i].pid != 0 || processos[i].criado == false) // ja foi ini ou nao foi criado
+            {
+                continue;
+            }
+
             // cria o processo
             pid_t pid = fork();
 
-            if (pid == 0)
+            if (pid == 0) // FILHO EXECUTA
             {
-                if (processos[i].pid != 0) // ja foi ini
+                if (processos[i].executando == true) // ja esta executando
                 {
+                    printf("\033[1;33mProcesso %s ja foi inicializado.\n\033[0m", processos[i].nome);
                     exit(0);
                 }
+
+                processos[i].executando = true;
 
                 char nomeprogexec[30];
                 nomeprogexec[0] = '.';
@@ -65,18 +74,13 @@ void escalona(Fila *processos, int numlinhas)
                 // formata a string
 
                 execvp(nomeprogexec, NULL);
-                printf("Erro ao executar o programa %s.\n", processos[i].nome);
+                printf("\033[1;31mErro ao executar o programa %s.\n\033[0m", processos[i].nome);
                 exit(0); // so executa se o programa não existir
             }
             else
             {
-
-                if (processos[i].pid != 0) // ja foi ini
-                {
-                    continue;
-                }
-                printf("Processo %s criado com pid %d\n", processos[i].nome, pid);
-
+                // PAI CONTROLA
+                printf("\033[1;32mProcesso %s criado com pid %d\n\033[0m", processos[i].nome, pid);
 
                 // processo pai
                 // salva o pid do processo
@@ -86,16 +90,19 @@ void escalona(Fila *processos, int numlinhas)
                 // se o processo for round robin, adiciona ele na lista de round robin
                 if (processos[i].tipo == ROUND_ROBIN)
                 {
-                    adicionar_processo(&processos[i]);
+                    adicionar_roundrobin(&processos[i]);
                     qtd_round_robin++;
+
+                    // se um novo processo round robin foi criado, reinicia a lista de round robin
+                    lista_processos = primeiro; // anti bug, não serve para larga escala
                 }
 
                 // print lista rr
                 CircularLinkedList *temp = lista_processos;
-                printf("Lista de processos round robin:\n");
+                printf("\033[0;35mLista de processos round robin:\n\033[0m");
                 for (int i = 0; i < qtd_round_robin; i++)
                 {
-                    printf("%s, pid = %d\n", temp->processo->nome, temp->processo->pid);
+                    printf("\033[0;35m%s, pid = %d\n\033[0m", temp->processo->nome, temp->processo->pid);
                     temp = temp->next;
                 }
             }
@@ -126,13 +133,13 @@ void escalona(Fila *processos, int numlinhas)
         // algum processo real time gostaria de executar?
         for (int i = 0; i < numlinhas; i++)
         {
-            if (processos[i].tipo == REAL_TIME && processos[i].inicio == tempo)
+            if (processos[i].tipo == REAL_TIME && processos[i].inicio == tempo && processos[i].criado == true)
             {
                 // se existe algum processo real time executando, emite erro
                 if (realtime_executando)
                 {
                     // emite um erro que o processo não pode ser executado
-                    printf("Erro: processo %s não pode ser executado. Processo pid %d em execucao\n", processos[i].nome, processo_atual);
+                    printf("\033[1;33mErro: processo %s não pode ser executado. Processo pid %d em execucao\n\033[0m", processos[i].nome, processo_atual);
                 }
                 else
                 {
@@ -158,34 +165,25 @@ void escalona(Fila *processos, int numlinhas)
                 // se nenhum processo esta executando, executa o proximo da lista
                 if (lista_processos != NULL)
                 {
-                    processo_atual = lista_processos->processo->pid;
                     call(lista_processos->processo->pid, SIGCONT);
+                    processo_atual = lista_processos->processo->pid;
 
                     // move o ponteiro para o proximo processo
                     lista_processos = lista_processos->next;
-
-                    printf("Processo %s incial.\n", lista_processos->processo->nome);
-                }
-                else
-                {
-                    printf("estranho.\n");
-                
                 }
             }
             else
             {
                 // se algum processo esta executando, pausa ele e executa o proximo
                 call(processo_atual, SIGSTOP);
-
-                // move o ponteiro para o proximo processo
-                lista_processos = lista_processos->next;
+                call(lista_processos->processo->pid, SIGCONT);
 
                 // executa o proximo processo
                 processo_atual = lista_processos->processo->pid;
 
-                printf("Processo %s executando.\n", lista_processos->processo->nome);
+                // move o ponteiro para o proximo processo
+                lista_processos = lista_processos->next;
 
-                call(lista_processos->processo->pid, SIGCONT);
             }
 
             processo_executando = true;
@@ -194,13 +192,13 @@ void escalona(Fila *processos, int numlinhas)
 
         if (!processo_executando)
         {
-            printf("Nenhum processo executando.\n");
+            printf("\033[1;33mNenhum processo executando.\n\033[0m");
             processo_executando = false;
             realtime_executando = false;
         }
 
         sleep(1); // tempo de atualização
-        printf(" - %ds\n", tempo);
+        printf("\033[1;34m - %ds\n\033[0m", tempo);
         tempo += 1;
         tempo %= 60;
     }

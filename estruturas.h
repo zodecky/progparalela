@@ -19,12 +19,15 @@ typedef struct fila_t
     char nome[30];
     int inicio;
     int duracao;
+    bool criado;
+    bool executando;
 } Fila;
 
 typedef struct circular_linked_list_t
 {
     Fila *processo;
     struct circular_linked_list_t *next;
+    struct circular_linked_list_t *prev;
 } CircularLinkedList;
 
 
