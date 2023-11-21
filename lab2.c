@@ -89,9 +89,7 @@ int main(void)
     //     printf("%d\n", vetor5[i]);
     // }
 
-    shmdt(vetor5);
 
-    shmctl(segmento, IPC_RMID, 0);
 
     // ************ PROGRAMA LINEAR *************
 
@@ -113,6 +111,28 @@ int main(void)
     cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     printf("Tempo de execução linear: %f\n", cpu_time_used);
+
+    // soma vetor linear
+    int soma = 0;
+    for (int i = 0; i < SIZEVEC; i++)
+    {
+        soma += vetor[i];
+    }
+    printf("Soma vetor linear: %d\n", soma);
+
+    // soma vetor paralelo
+    soma = 0;
+    for (int i = 0; i < SIZEVEC; i++)
+    {
+        soma += vetor5[i];
+    }
+
+    printf("Soma vetor paralelo: %d\n", soma);
+
+    shmdt(listaclockstart);
+    shmdt(vetor5);
+
+    shmctl(segmento, IPC_RMID, 0);
 
     return 0;
 }

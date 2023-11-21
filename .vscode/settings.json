@@ -63,6 +63,10 @@
     "stdlib.h": "c",
     "wait.h": "c",
     "stdbool.h": "c",
-    "estruturas.h": "c"
+    "estruturas.h": "c",
+    "semaphore.h": "c",
+    "shm.h": "c",
+    "stat.h": "c",
+    "types.h": "c"
   }
 }

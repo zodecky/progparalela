@@ -26,7 +26,6 @@ int main(void)
 
     if (pid == 0)
     {
-        // sleep(1);
         for (int i = 0; i < SIZEVEC; i++)
         {
             vetor5[i] = (vetor5[i] * 2) + 2;
@@ -47,12 +46,14 @@ int main(void)
     wait(NULL);
     wait(NULL);
 
-    // print vec
-
+    //soma vec
+    int soma = 0;
     for (int i = 0; i < SIZEVEC; i++)
     {
-        printf("%d-", vetor5[i]);
+        soma += vetor5[i];
     }
+
+    printf("Soma: %d\n", soma);
 
     return 0;
 }
