@@ -32,12 +32,13 @@ args_t getargs(int argc, const char *argv[])
         }
         case 'p': // tamanho da pagina
         {
-            strcpy(args.pagsize, optarg);
+            args.pagsize = atoi(optarg);
             break;
         }
         case 'm': // tamanho da memoria
         {
-            strcpy(args.memsize, optarg);
+            // printf("\n\noptarg: %s\n", optarg);
+            args.memsize = atoi(optarg);
             break;
         }
         default:
@@ -53,6 +54,6 @@ void printargs(args_t args)
 {
     printf("\033[1;34mAlgoritmo: %s\n", args.algoritmo);
     printf("Arquivo input: %s\n", args.input);
-    printf("N paginas: %s\n", args.pagsize);
-    printf("Tamanho memoria: %s\n\033[0m", args.memsize);
+    printf("Tamanho de uma p\u00E1gina: %d\n", args.pagsize);
+    printf("Tamanho mem\u00F3ria f\u00EDsica: %d\n\033[0m", args.memsize);
 }

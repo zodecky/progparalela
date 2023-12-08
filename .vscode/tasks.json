@@ -23,6 +23,15 @@
                 "isDefault": true
             },
             "detail": "Tarefa gerada pelo Depurador."
+        },
+        {
+            "type": "shell",
+            "label": "make trabalho2",
+            "command": "cd TRABALHO2; make trabalho2",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ],
     "version": "2.0.0"

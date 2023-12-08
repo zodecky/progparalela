@@ -34,6 +34,26 @@
           "ignoreFailures": true
         }
       ]
-    }
+    },
+    {
+      "name": "Compilar Makefile",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/TRABALHO2/trabalho2",
+      "args": ["-a", "NRU", "-i", "simulador.log", "-m", "1", "-p", "16"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}/TRABALHO2",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+          {
+              "description": "Enable pretty-printing for gdb",
+              "text": "-enable-pretty-printing",
+              "ignoreFailures": true
+          }
+      ],
+      "preLaunchTask": "make trabalho2"
+  }
   ]
 }

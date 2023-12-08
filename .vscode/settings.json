@@ -68,6 +68,10 @@
     "shm.h": "c",
     "stat.h": "c",
     "types.h": "c",
-    "getopt.h": "c"
+    "getopt.h": "c",
+    "cstdlib": "c",
+    "pages.h": "c",
+    "relatorio.h": "c",
+    "getargs.h": "c"
   }
 }
