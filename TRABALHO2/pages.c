@@ -28,7 +28,21 @@ void reset_reference_bits(PageTable *pagetable, int max_tabela) {
     }
 }
 
-int nru_index(PageTable pagetable, int max_tabela) {
+int lru(PageTable pagetable, int deslocamento) {
+    int menor = pagetable.pages[0].last_accessed; // last_accessed da primeira página, para comparar com o resto
+    int menor_idx = 0;
+
+    for (int j = 1; j < pow(2, 32 - deslocamento); j++) {
+        if (pagetable.pages[j].valida && pagetable.pages[j].last_accessed < menor) {
+            menor = pagetable.pages[j].last_accessed;
+            menor_idx = j;
+        }
+    }
+
+    return menor_idx;
+}
+
+int nru(PageTable pagetable, int max_tabela) {
     int classe0 = -1;
     int classe1 = -1;
     int classe2 = -1;
@@ -127,10 +141,10 @@ relatorio_t le_arquivo(args_t args)
     // tamanho memoria fisica (n de paginas)
     int maximo_paginas = (int)(args.memsize * pow(2, 20)) / (args.pagsize * pow(2, 10)); 
 
-    printf("memsize: %d\n", (int)args.memsize);
+    printf("\nmemsize: %d\n", (int)args.memsize);
     printf("pagsize: %d\n", args.pagsize);
 
-    printf("maximo_paginas: %d\n", maximo_paginas);
+    printf("n\u00B0de p\u00E1ginas f\u00EDsicas: %d\n", maximo_paginas);
 
     int deslocamento;
 
@@ -192,8 +206,7 @@ relatorio_t le_arquivo(args_t args)
 
     while (fscanf(arquivo, "%x %c", &endereco, &rw) != EOF)
     {
-        printf("pt8\n");
-        time = (time + 1) % 10000;
+        time = (time + 1) % 100;
 
         unsigned int page_idx = endereco >> deslocamento;
 
@@ -214,7 +227,7 @@ relatorio_t le_arquivo(args_t args)
             if (time == 0)
             {
                 // se for, zera o last_accessed de todas as páginas
-                reset_reference_bits(&pagetable, sizeof(Page) * pow(2, 32 - deslocamento));
+                reset_reference_bits(&pagetable, pow(2, 32 - deslocamento));
                 resets++;
             }
 
@@ -250,9 +263,8 @@ relatorio_t le_arquivo(args_t args)
                
                 int trocada_idx = 0;                            // indice da página menos recentemente usada
 
-                trocada_idx = nru_index(pagetable, sizeof(Page) * pow(2, 32 - deslocamento));
+                trocada_idx = nru(pagetable, pow(2, 32 - deslocamento));
 
-                printf("pt1\n");
 
                 // checa se a pagina menos recentemente usada foi escrita
                 if (pagetable.pages[trocada_idx].M == 1)
@@ -261,7 +273,6 @@ relatorio_t le_arquivo(args_t args)
                     pagetable.pages[trocada_idx].M = 0;
                 }
 
-                printf("pt2\n");
 
                 // agora removemos a menor página
                 pagetable.pages[trocada_idx].R = false;
@@ -269,16 +280,12 @@ relatorio_t le_arquivo(args_t args)
                 pagetable.pages[page_idx].R = true;
                 pagetable.pages[page_idx].valida = true;
 
-                printf("pt3\n");
-
                 if (rw == 'W')
                 {
                     pagetable.pages[page_idx].M = 1;
                 }
 
                 page_faults++;
-
-                printf("pt4\n");
 
             }
         }
@@ -333,14 +340,7 @@ relatorio_t le_arquivo(args_t args)
                 int menor = pagetable.pages[0].last_accessed; // last_accessed da primeira página, para comparar com o resto
                 int menor_idx = 0;                            // indice da página menos recentemente usada
 
-                for (int j = 1; j < maximo_paginas; j++)
-                {
-                    if (pagetable.pages[j].valida && pagetable.pages[j].last_accessed < menor)
-                    {
-                        menor = pagetable.pages[j].last_accessed;
-                        menor_idx = j;
-                    }
-                }
+                menor_idx = lru(pagetable, deslocamento);
 
                 // checa se a pagina menos recentemente usada foi escrita
                 if (pagetable.pages[menor_idx].M == 1)
